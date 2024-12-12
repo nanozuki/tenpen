@@ -1,4 +1,4 @@
-package tenpen
+package ast
 
 type TokenType int
 
