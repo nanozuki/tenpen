@@ -3,45 +3,48 @@ package ast
 type ValueType int
 
 const (
-	ValueTypeNull ValueType = iota
-	ValueTypeString
-	ValueTypeNumber
-	ValueTypeBool
-	ValueTypeArray
-	ValueTypeObject
+	TypeNull ValueType = iota
+	TypeString
+	TypeNumber
+	TypeBool
+	TypeArray
+	TypeObject
+	TypeRef
+	TypeFn
 )
 
 type Value interface {
 	ValueType() ValueType
-	Value() any
 }
 
-type NullValue struct{}
+type Null struct{}
 
-func (n NullValue) ValueType() ValueType { return ValueTypeNull }
-func (n NullValue) Value() any           { return nil }
+func (n Null) ValueType() ValueType { return TypeNull }
 
-type StringValue string
+type String string
 
-func (s StringValue) ValueType() ValueType { return ValueTypeString }
-func (s StringValue) Value() any           { return string(s) }
+func (s String) ValueType() ValueType { return TypeString }
 
-type NumberValue float64
+type Number float64
 
-func (n NumberValue) ValueType() ValueType { return ValueTypeNumber }
-func (n NumberValue) Value() any           { return float64(n) }
+func (n Number) ValueType() ValueType { return TypeNumber }
 
-type BoolValue bool
+type Bool bool
 
-func (b BoolValue) ValueType() ValueType { return ValueTypeBool }
-func (b BoolValue) Value() any           { return bool(b) }
+func (b Bool) ValueType() ValueType { return TypeBool }
 
-type ArrayValue []Value
+type Array []Value
 
-func (a ArrayValue) ValueType() ValueType { return ValueTypeArray }
-func (a ArrayValue) Value() any           { return []Value(a) }
+func (a Array) ValueType() ValueType { return TypeArray }
 
-type ObjectValue map[string]Value
+type Object map[string]Value
 
-func (o ObjectValue) ValueType() ValueType { return ValueTypeObject }
-func (o ObjectValue) Value() any           { return map[string]Value(o) }
+func (o Object) ValueType() ValueType { return TypeObject }
+
+type Ref string
+
+func (r Ref) ValueType() ValueType { return TypeRef }
+
+type Fn string
+
+func (f Fn) ValueType() ValueType { return TypeFn }

@@ -17,21 +17,21 @@ func ValueUnmarshal(s string) (ast.Value, error) {
 func parseValue(jv interface{}) ast.Value {
 	switch jv := jv.(type) {
 	case nil:
-		return ast.NullValue{}
+		return ast.Null{}
 	case string:
-		return ast.StringValue(jv)
+		return ast.String(jv)
 	case float64:
-		return ast.NumberValue(jv)
+		return ast.Number(jv)
 	case bool:
-		return ast.BoolValue(jv)
+		return ast.Bool(jv)
 	case []interface{}:
 		values := make([]ast.Value, 0, len(jv))
 		for _, v := range jv {
 			values = append(values, parseValue(v))
 		}
-		return ast.ArrayValue(values)
+		return ast.Array(values)
 	case map[string]interface{}:
-		values := make(ast.ObjectValue, len(jv))
+		values := make(ast.Object, len(jv))
 		for key, v := range jv {
 			values[key] = parseValue(v)
 		}
