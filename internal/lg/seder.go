@@ -22,10 +22,18 @@ func jsonValueToExpr(jv any) (Expr, error) {
 		return Null{}, nil
 	case string:
 		if strings.HasPrefix(jv, "#") && !strings.HasPrefix(jv, "##") {
-			return parseRef(jv)
+			path, err := ParsePath(jv[1:])
+			if err != nil {
+				return nil, err
+			}
+			return ValRef(path), nil
 		}
 		if strings.HasPrefix(jv, "$") && !strings.HasPrefix(jv, "$$") {
-			return parseFnName(jv)
+			path, err := ParsePath(jv[1:])
+			if err != nil {
+				return nil, err
+			}
+			return FnRef(path), nil
 		}
 		return String(jv), nil
 	case float64:
@@ -41,9 +49,9 @@ func jsonValueToExpr(jv any) (Expr, error) {
 			}
 			arr = append(arr, expr)
 		}
-		if len(arr) > 0 && arr[0].Type() == ExprFn {
-			if arr[0].(Fn)[0] == "def" {
-				return parseFnDef(arr)
+		if len(arr) > 0 && arr[0].Type() == ExprFnRef {
+			if arr[0].(FnRef)[0] == StringStep("def") {
+				return parseTenpenFn(arr)
 			}
 			return parseFnCall(arr)
 		}
@@ -63,7 +71,7 @@ func jsonValueToExpr(jv any) (Expr, error) {
 	}
 }
 
-func parseRef(s string) (Ref, error) {
+func parseRef(s string) (Path, error) {
 	if len(s) < 2 {
 		return nil, tperr.InvalidRefError()
 	}
@@ -86,43 +94,30 @@ func parseRef(s string) (Ref, error) {
 	return steps, nil
 }
 
-func parseFnName(s string) (Fn, error) {
-	if len(s) < 2 {
-		return nil, tperr.InvalidFnNameError()
-	}
-	steps := strings.Split(s[1:], ".")
-	for _, s := range steps {
-		if s == "" {
-			return nil, tperr.InvalidFnNameError()
-		}
-	}
-	return Fn(steps), nil
-}
-
 func parseFnCall(arr Array) (FnCall, error) {
 	// arr[0] is name of function, arr[1:] are arguments
 	if len(arr) < 2 {
 		return FnCall{}, tperr.InvalidFnCallError()
 	}
 	return FnCall{
-		Fn:   arr[0].(Fn),
-		Args: arr[1:],
+		FnRef: arr[0].(FnRef),
+		Args:  arr[1:],
 	}, nil
 }
 
-func parseFnDef(arr Array) (FnDef, error) {
+func parseTenpenFn(arr Array) (TenpenFn, error) {
 	// arr[0] is function name "def", arr[1] is string arguments, arr[2] is body
 	if len(arr) != 3 || arr[1].Type() != ExprArray {
-		return FnDef{}, tperr.InvalidFnDefError()
+		return TenpenFn{}, tperr.InvalidFnDefError()
 	}
 	args := make([]String, 0, len(arr[1].(Array)))
 	for _, arg := range arr[1].(Array) {
 		if arg.Type() != ExprString {
-			return FnDef{}, tperr.InvalidFnDefError()
+			return TenpenFn{}, tperr.InvalidFnDefError()
 		}
 		args = append(args, arg.(String))
 	}
-	return FnDef{
+	return TenpenFn{
 		Args: args,
 		Body: arr[2],
 	}, nil
@@ -155,18 +150,18 @@ func exprToJSONValue(expr Expr) any {
 			obj[k] = exprToJSONValue(v)
 		}
 		return obj
-	case Ref:
+	case ValRef:
 		return expr.String()
-	case Fn:
+	case FnRef:
 		return expr.String()
 	case FnCall:
 		arr := make([]any, 0, len(expr.Args)+1)
-		arr = append(arr, exprToJSONValue(expr.Fn))
+		arr = append(arr, exprToJSONValue(expr.FnRef))
 		for _, arg := range expr.Args {
 			arr = append(arr, exprToJSONValue(arg))
 		}
 		return arr
-	case FnDef:
+	case TenpenFn:
 		args := make([]string, 0, len(expr.Args))
 		for _, arg := range expr.Args {
 			args = append(args, string(arg))
@@ -176,6 +171,8 @@ func exprToJSONValue(expr Expr) any {
 			args,
 			exprToJSONValue(expr.Body),
 		}
+	case GoFn:
+		return "<GoFn>"
 	default:
 		panic("unreachable")
 	}

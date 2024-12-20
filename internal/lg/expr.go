@@ -1,12 +1,5 @@
 package lg
 
-import (
-	"strconv"
-	"strings"
-
-	"github.com/nanozuki/tenpen/tperr"
-)
-
 type ExprType int
 
 const (
@@ -16,10 +9,10 @@ const (
 	ExprBool
 	ExprArray
 	ExprObject
-	ExprRef
-	ExprFn
+	ExprValueRef
+	ExprFnRef
 	ExprFnCall
-	ExprFnDef
+	ExprFn
 )
 
 type Expr interface {
@@ -56,129 +49,65 @@ func (a Array) Type() ExprType {
 	return ExprArray
 }
 
-func (a Array) GetByRef(ref Ref) (Expr, error) {
-	switch {
-	case len(ref) == 0 || ref[0].StepType() == StepTypeString:
-		return nil, tperr.NoRefError()
-	case len(ref) == 1:
-		index := int(ref[0].(NumberStep))
-		if index < 0 || index >= len(a) {
-			return Null{}, nil
-		}
-		return a[index], nil
-	default: // len(ref) > 1
-		child := a[int(ref[0].(NumberStep))]
-		switch child := child.(type) {
-		case Array:
-			return child.GetByRef(ref[1:])
-		case Object:
-			return child.GetByRef(ref[1:])
-		default:
-			return nil, tperr.NoRefError()
-		}
-	}
-}
-
 type Object map[string]Expr
 
 func (o Object) Type() ExprType { return ExprObject }
 
-func (o Object) GetByRef(ref Ref) (Expr, error) {
-	switch {
-	case len(ref) == 0 || ref[0].StepType() == StepTypeNumber:
-		return nil, tperr.NoRefError()
-	case len(ref) == 1:
-		child, ok := o[string(ref[0].(StringStep))]
-		if !ok {
-			return Null{}, nil
-		}
-		return child, nil
-	default: // len(ref) > 1
-		child := o[string(ref[0].(StringStep))]
-		switch child := child.(type) {
-		case Array:
-			return child.GetByRef(ref[1:])
-		case Object:
-			return child.GetByRef(ref[1:])
-		default:
-			return nil, tperr.NoRefError()
-		}
-	}
-}
+type ValRef Path
 
-type Step interface {
-	StepType() StepType
-}
-type StepType int
+func (v ValRef) Type() ExprType { return ExprValueRef }
+func (v ValRef) String() string { return "#" + Path(v).String() }
 
-const (
-	StepTypeString StepType = iota
-	StepTypeNumber
-)
+type FnRef Path
 
-type StringStep string
-
-func (s StringStep) StepType() StepType { return StepTypeString }
-
-type NumberStep int
-
-func (n NumberStep) StepType() StepType { return StepTypeNumber }
-
-type Ref []Step
-
-func (r Ref) Type() ExprType {
-	return ExprRef
-}
-
-func (r Ref) String() string {
-	var b strings.Builder
-	b.WriteRune('#')
-	for i, s := range r {
-		if i > 0 {
-			b.WriteRune('.')
-		}
-		switch s := s.(type) {
-		case StringStep:
-			b.WriteString(string(s))
-		case NumberStep:
-			b.WriteString(strconv.Itoa(int(s)))
-		}
-	}
-	return b.String()
-}
-
-type Fn []string
-
-func (f Fn) Type() ExprType {
-	return ExprFn
-}
-
-func (f Fn) String() string {
-	var b strings.Builder
-	b.WriteRune('$')
-	for i, s := range f {
-		if i > 0 {
-			b.WriteRune('.')
-		}
-		b.WriteString(s)
-	}
-	return b.String()
-}
+func (f FnRef) Type() ExprType { return ExprFnRef }
+func (f FnRef) String() string { return "$" + Path(f).String() }
 
 type FnCall struct {
-	Fn   Fn
-	Args []Expr
+	FnRef FnRef
+	Args  []Expr
 }
 
 func (f FnCall) Type() ExprType {
 	return ExprFnCall
 }
 
-type FnDef struct {
+type Fn interface {
+	Expr
+	Apply(e Evaller, args []Expr) (Expr, error)
+}
+
+type Evaller interface {
+	SubEvaller(scopedValue Expr) Evaller
+	Eval(expr Expr) (Expr, error)
+}
+
+type TenpenFn struct {
 	Args []String
 	Body Expr
 }
 
-func (f FnDef) Type() ExprType {
-	return ExprFnDef
+func (f TenpenFn) Type() ExprType {
+	return ExprFn
+}
+
+func (f TenpenFn) Apply(e Evaller, args []Expr) (Expr, error) {
+	for i := len(args); i < len(f.Args); i++ {
+		args = append(args, Null{})
+	}
+	scope := Object{}
+	for i, arg := range f.Args {
+		scope[string(arg)] = args[i]
+	}
+	return e.SubEvaller(scope).Eval(f.Body)
+}
+
+type GoFn func(e Evaller, args []Expr) (Expr, error)
+
+func (f GoFn) Type() ExprType {
+	return ExprFn
+}
+
+func (f GoFn) Apply(e Evaller, args []Expr) (Expr, error) {
+	return f(e, args)
 }
