@@ -130,3 +130,15 @@ func (r Path) SetTo(target Expr, value Expr) error {
 		return tperr.NoRefError()
 	}
 }
+
+func (p Path) IsChildOf(other Path) bool {
+	if len(p) <= len(other) {
+		return false
+	}
+	for i, s := range other {
+		if p[i] != s {
+			return false
+		}
+	}
+	return true
+}

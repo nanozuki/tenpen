@@ -9,7 +9,7 @@ const (
 	ExprBool
 	ExprArray
 	ExprObject
-	ExprValueRef
+	ExprValRef
 	ExprFnRef
 	ExprFnCall
 	ExprFn
@@ -55,7 +55,7 @@ func (o Object) Type() ExprType { return ExprObject }
 
 type ValRef Path
 
-func (v ValRef) Type() ExprType { return ExprValueRef }
+func (v ValRef) Type() ExprType { return ExprValRef }
 func (v ValRef) String() string { return "#" + Path(v).String() }
 
 type FnRef Path
