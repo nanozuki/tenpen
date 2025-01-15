@@ -6,7 +6,7 @@ import (
 	"github.com/nanozuki/tenpen/tperr"
 )
 
-var builtins = Object{
+var Builtins = Object{
 	"+": GoFn(add),
 	"-": GoFn(sub),
 	"*": GoFn(mul),

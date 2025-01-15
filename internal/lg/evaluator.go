@@ -14,9 +14,8 @@ func NewEvaluator(rule Expr, vars []Expr, functions []Expr) *Evaluator {
 	e := &Evaluator{
 		rule: rule,
 		v:    vars,
-		f:    []Expr{builtins},
+		f:    functions,
 	}
-	e.f = append(e.f, functions...)
 	switch rule.Type() {
 	case ExprArray:
 		e.v = append(e.v, Array{})

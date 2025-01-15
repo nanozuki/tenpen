@@ -7,15 +7,15 @@ import (
 	"github.com/nanozuki/tenpen/tperr"
 )
 
-func Unmarshal(data []byte) (Expr, error) {
+func ExprFromBytes(data []byte) (Expr, error) {
 	var jv any
 	if err := json.Unmarshal(data, &jv); err != nil {
 		return nil, err
 	}
-	return jsonValueToExpr(jv)
+	return ExprFromValue(jv)
 }
 
-func jsonValueToExpr(jv any) (Expr, error) {
+func ExprFromValue(jv any) (Expr, error) {
 	switch jv := jv.(type) {
 	case nil:
 		return Null{}, nil
@@ -42,7 +42,7 @@ func jsonValueToExpr(jv any) (Expr, error) {
 	case []any:
 		arr := make(Array, 0, len(jv))
 		for _, v := range jv {
-			expr, err := jsonValueToExpr(v)
+			expr, err := ExprFromValue(v)
 			if err != nil {
 				return nil, err
 			}
@@ -58,7 +58,7 @@ func jsonValueToExpr(jv any) (Expr, error) {
 	case map[string]any:
 		obj := make(Object, len(jv))
 		for k, v := range jv {
-			expr, err := jsonValueToExpr(v)
+			expr, err := ExprFromValue(v)
 			if err != nil {
 				return nil, err
 			}
@@ -99,12 +99,12 @@ func parseTenpenFn(arr Array) (TenpenFn, error) {
 	}, nil
 }
 
-func Marshal(expr Expr) ([]byte, error) {
-	jv := exprToJSONValue(expr)
+func ExprToBytes(expr Expr) ([]byte, error) {
+	jv := ExprToValue(expr)
 	return json.Marshal(jv)
 }
 
-func exprToJSONValue(expr Expr) any {
+func ExprToValue(expr Expr) any {
 	switch expr := expr.(type) {
 	case Null:
 		return nil
@@ -117,13 +117,13 @@ func exprToJSONValue(expr Expr) any {
 	case Array:
 		arr := make([]any, 0, len(expr))
 		for _, v := range expr {
-			arr = append(arr, exprToJSONValue(v))
+			arr = append(arr, ExprToValue(v))
 		}
 		return arr
 	case Object:
 		obj := make(map[string]any, len(expr))
 		for k, v := range expr {
-			obj[k] = exprToJSONValue(v)
+			obj[k] = ExprToValue(v)
 		}
 		return obj
 	case ValRef:
@@ -132,9 +132,9 @@ func exprToJSONValue(expr Expr) any {
 		return expr.String()
 	case FnCall:
 		arr := make([]any, 0, len(expr.Args)+1)
-		arr = append(arr, exprToJSONValue(expr.FnRef))
+		arr = append(arr, ExprToValue(expr.FnRef))
 		for _, arg := range expr.Args {
-			arr = append(arr, exprToJSONValue(arg))
+			arr = append(arr, ExprToValue(arg))
 		}
 		return arr
 	case TenpenFn:
@@ -145,7 +145,7 @@ func exprToJSONValue(expr Expr) any {
 		return []any{
 			"#def",
 			args,
-			exprToJSONValue(expr.Body),
+			ExprToValue(expr.Body),
 		}
 	case GoFn:
 		return "<GoFn>"
