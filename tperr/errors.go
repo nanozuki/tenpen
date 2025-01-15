@@ -45,6 +45,8 @@ const (
 	InvalidFnDef  ErrorMessages = "invalid function definition"
 	NoRef         ErrorMessages = "no reference"
 	CircularRef   ErrorMessages = "circular reference"
+	InvalidType   ErrorMessages = "invalid type"
+	InvalidArg    ErrorMessages = "invalid argument"
 )
 
 func InvalidJSONError() *Error { // TODO: add location
@@ -86,5 +88,17 @@ func NoRefError() *Error { // TODO: add location
 func CircularRefError() *Error { // TODO: add Location
 	return &Error{
 		Message: CircularRef,
+	}
+}
+
+func InvalidTypeError() *Error { // TODO: add Location
+	return &Error{
+		Message: InvalidType,
+	}
+}
+
+func InvalidArgError() *Error { // TODO: add location
+	return &Error{
+		Message: InvalidArg,
 	}
 }

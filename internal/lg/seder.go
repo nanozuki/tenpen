@@ -2,7 +2,6 @@ package lg
 
 import (
 	"encoding/json"
-	"strconv"
 	"strings"
 
 	"github.com/nanozuki/tenpen/tperr"
@@ -69,29 +68,6 @@ func jsonValueToExpr(jv any) (Expr, error) {
 	default:
 		panic("unreachable")
 	}
-}
-
-func parseRef(s string) (Path, error) {
-	if len(s) < 2 {
-		return nil, tperr.InvalidRefError()
-	}
-	stepStrs := strings.Split(s[1:], ".")
-	steps := make([]Step, 0, len(stepStrs))
-	for _, s := range stepStrs {
-		switch {
-		case s == "":
-			return nil, tperr.InvalidRefError()
-		case s[0] >= '0' && s[0] <= '9':
-			n, err := strconv.Atoi(s)
-			if err != nil {
-				return nil, tperr.InvalidRefError()
-			}
-			steps = append(steps, NumberStep(n))
-		default:
-			steps = append(steps, StringStep(s))
-		}
-	}
-	return steps, nil
 }
 
 func parseFnCall(arr Array) (FnCall, error) {
