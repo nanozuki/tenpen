@@ -17,7 +17,7 @@ import (
 
 func main() {
   var input = `{"a": 1, "b": 2}`
-  var rule = `["$+", "#a", "#b"]`
+  var rule = `["$add", "#a", "#b"]`
 
   output, err := tp.Eval(rule, input)
   println(output, err) // "3" nil
@@ -34,8 +34,8 @@ import (
 func main() {
   var input = `{"a": 1, "b": {"c": 2}}`
   var rule = `{
-    "sum": ["$+", "#a", "#b.c"],
-    "double-sum": ["$*", "#sum", 2]
+    "sum": ["$add", "#a", "#b.c"],
+    "double-sum": ["$mul", "#sum", 2]
   }`
 
   output, err := tp.Eval(rule, input)
@@ -93,12 +93,41 @@ the rest elements are arguments.
 
 ### Built-in Functions
 
-1. math: `+`, `-`, `*`, `/`, `%`, `^`
-1. boolean: `and`, `or`, `not`, `==`, `!=`, `>`, `<`, `>=`, `<=`
-1. strings: `+`, `len`, `split`, `join`
-1. array: `len`, `get`, `filter`, `map`, `reduce`
-1. object: `len`, `get`, `keys`, `values`
-1. flow control: `if`, `cond`, `let`, `def`, `do`, `apply`
+#### Basic Operators
+
+| Name    | Parameters       | Return   | Description                       |
+| ------- | ---------------- | -------- | --------------------------------- |
+| `$add`  | `...number`      | `number` | add a sequence of numbers         |
+| `$add`  | `...string`      | `string` | concatenate a sequence of strings |
+| `$sub`  | `number, number` | `number` | subtract two numbers              |
+| `$mul`  | `...number`      | `number` | multiply a sequence of numbers    |
+| `$div`  | `number, number` | `number` | divide two numbers                |
+| `$mod`  | `number, number` | `number` | modulo two numbers                |
+| `$pow`  | `number, number` | `number` | power two numbers                 |
+| `$eq`   | `any, any`       | `bool`   | equal                             |
+| `$ne`   | `any, any`       | `bool`   | not equal                         |
+| `$gt`   | `number, number` | `bool`   | greater than                      |
+| `$lt`   | `number, number` | `bool`   | less than                         |
+| `$gte`  | `number, number` | `bool`   | greater than or equal             |
+| `$lte`  | `number, number` | `bool`   | less than or equal                |
+| `$both` | `...boolean`     | `bool`   | and                               |
+| `$any`  | `...boolean`     | `bool`   | or                                |
+| `$not`  | `bool`           | `bool`   | not                               |
+| `$len`  | `array`          | `number` | length of array                   |
+| `$len`  | `string`         | `number` | length of string                  |
+
+#### Conditional
+
+| Name      | Parameters                                 | Return   | Description                                                                                    |
+| --------- | ------------------------------------------ | -------- | ---------------------------------------------------------------------------------------------- |
+| `$either` | `bool, any, any`                           | `any`    | if the first argument is true, return the second argument, otherwise return the third argument |
+| `$match`  | `...[bool, any]`                           | `any`    | match the first true condition, and return the value of in the next argument                   |
+| `$map`    | `array, func{number, any}->any`            | `array`  | map the function to each element in array                                                      |
+| `$map`    | `object, func{string, any}->any`           | `object` | map the function to each value in object                                                       |
+| `$filter` | `array, func{number, any}->bool`           | `array`  | filter the array by the function                                                               |
+| `$filter` | `object, func{string, any}->bool`          | `object` | filter the object by the function                                                              |
+| `$reduce` | `array, any, func{number, any, any}->any`  | `any`    | reduce the array by the function                                                               |
+| `$reduce` | `object, any, func{string, any, any}->any` | `any`    | reduce the object by the function                                                              |
 
 ### Define Function
 
